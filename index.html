@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Use Canvas Draw Region</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+    .canvas-box {
+      padding: 0;
+      margin: 0;    
+      border: 0;
+    }
+  </style>
+
+  <link rel="stylesheet" href="http://localhost/arcgis_js_api/4.11/esri/css/main.css">
+  <script src="http://localhost/arcgis_js_api/4.11/init.js"></script>
+
+  <script>
+    require([
+      "esri/tasks/support/Query",
+      "esri/tasks/QueryTask",
+      "dojo/domReady!"
+    ], function(
+      Query, QueryTask
+    ) {
+      var query = new Query({
+        where: '1=1',
+        returnGeometry: true
+      });
+      var showArr = ['台湾', '云南'];
+      var qt = new QueryTask({
+        url: 'past your layer url here'
+        });
+      qt.execute(query).then((res) => {
+        if (res && res.features) {
+          // console.log(res.features);
+          drawGeo(res.features, showArr);
+        }
+      });
+    });
+
+    function drawGeo(features, renderArr) {
+            var colors = ["#d62728", "#c5b0d5", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a", "#d62728", "#ff9896", "#9467bd", "#c5b0d5", "#8c564b", "#c49c94", "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7", "#bcbd22", "#dbdb8d", "#17becf", "#9edae5"]
+            var c = document.getElementById("myCanvas");
+            var ctx = c.getContext("2d");
+
+            var bounds = getBoundingBox();
+            var height = Math.ceil(500);
+            var width = Math.ceil(300);
+            c.width = width;
+            c.height = height;
+            draw(width, height, bounds, features, ctx, colors, renderArr)
+            ctx = null;
+            c = null;
+            height = null;
+            width = null;
+
+            bounds = null;
+            colors = null;
+            function getBoundingBox() {
+                var bounds = {};
+                bounds.xMin = 73.441277;
+                bounds.xMax = 135.08693;
+                bounds.yMin = 18.159829;
+                bounds.yMax = 53.561771;
+                return bounds;
+            }
+
+            function draw(width, height, bounds, features, context, colors, renderArr) {
+                var coords, point;
+                var xScale = width / Math.abs(bounds.xMax - bounds.xMin);
+                var yScale = height / Math.abs(bounds.yMax - bounds.yMin);
+                var scale = xScale < yScale ? xScale : yScale;
+                var xoffset = width / 2.0 - Math.abs(bounds.xMax - bounds.xMin) / 2 * scale;
+                var yoffset = height / 2.0 - Math.abs(bounds.yMax - bounds.yMin) / 2 * scale;
+                context.lineWidth = 1;
+                context.strokeStyle="#058";
+                features.forEach((feature, idx) => {
+                    const fdIdx = renderArr.findIndex((name) => name === feature.attributes.NAME);
+                    if (fdIdx === -1) {
+                        context.fillStyle = '#fff';
+                    } else {
+                        context.fillStyle = colors[fdIdx % 20];
+                    }
+                    feature.geometry.rings.forEach((ring, ringIndex) => {
+                        if (ring.length > 2) {
+                            ring.forEach((pnt, pntIndex) => {
+                                point = coordinateToPoint(pnt[1], pnt[0], bounds, scale, xoffset, yoffset);
+                                if (pntIndex === 0) {
+                                    context.beginPath();
+                                    context.moveTo(point.x, point.y);
+                                } else {
+                                    context.lineTo(point.x, point.y);
+                                }
+                                context.fill();
+                                context.stroke();
+                            });
+
+                        }
+                    });
+                });
+            }
+            function coordinateToPoint(latitude, longitude, bounds, scale, xoffset, yoffset) {
+                return {
+                    x: (longitude - bounds.xMin) * scale + xoffset,
+                    y: (bounds.yMax - latitude) * scale + yoffset
+                };
+            }
+        }
+
+  </script>
+</head>
+<body >
+    <canvas id="myCanvas"> 您的浏览器不支持 HTML5 canvas 标签。</canvas>
+</body>
+</html>
